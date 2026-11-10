@@ -21,6 +21,7 @@
 //!
 //! Textures are block compressed unless `--raw-textures` is given.
 
+mod circuit;
 mod collision_view;
 mod forest;
 mod gallery;
