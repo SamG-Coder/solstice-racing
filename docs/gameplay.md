@@ -1085,7 +1085,10 @@ def on_hour(self, hour):
     with the gameplay build. That build reads keys, the mouse, standard-layout gamepads and
     touch: a stick under the left thumb, looking under the right, and taps. It shows what
     scripts log, and their errors, in a panel.
-  - Gamepads natively are left for later: they need a crate of their own (`gilrs`).
+  - Natively, gamepads are read with `gilrs` (`apps/viewer/src/pad.rs`) and passed on under
+    the names the browser's standard layout uses, so one `.input` file serves both. The pad
+    used most recently is the one read, as in the browser. On Linux, building needs udev's
+    headers (`libudev-dev`).
   - With actors but no player, the keys both fly the camera and reach the game.
   - Keys typed into the page's own controls don't reach the game.
 - **Left for later.** An actor's instances are movable from the start, so a gate that seldom

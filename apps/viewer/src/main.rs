@@ -31,6 +31,7 @@ mod native {
         StreamRequest, StreamingBudget, TimeOfDay, Weather,
     };
     use solstice_viewer::bob::Bobbing;
+    use solstice_viewer::pad::Pads;
     use solstice_viewer::play::PlayMode;
     use solstice_viewer::{
         default_environment, initial_camera, parse_time, CameraInput, DayClock, FlyCamera,
@@ -1238,9 +1239,14 @@ mod native {
         camera: FlyCamera,
         bob: Option<Bobbing>,
         play: Option<(PlayMode, ScriptWatch)>,
+        /// The gamepads plugged in, for a game to be played with.
+        pads: Option<Pads>,
         last_frame: Instant,
         title_timer: f32,
         frames_since_title: u32,
+        /// Frames a second, as last measured, and how long since the dashboard was written.
+        fps: f32,
+        hud_timer: f32,
     }
 
     struct App {
@@ -1290,6 +1296,7 @@ mod native {
             });
             Ok(WindowState {
                 bob,
+                pads: play.as_ref().and_then(|_| Pads::new()),
                 play,
                 reader,
                 window,
@@ -1305,6 +1312,8 @@ mod native {
                 last_frame: Instant::now(),
                 title_timer: 0.0,
                 frames_since_title: 0,
+                fps: 0.0,
+                hud_timer: 0.0,
             })
         }
 
@@ -1352,23 +1361,43 @@ mod native {
                     delta,
                 );
             }
+            let mut driving = false;
             if let Some((play, watch)) = &mut state.play {
                 watch.check(play, delta);
+                if let Some(pads) = &mut state.pads {
+                    pads.poll(&mut play.devices);
+                }
                 log_messages(play.frame(&mut state.renderer, &mut state.camera.camera, delta));
+                // Driving, the title is the dashboard: speed, gear, revs and lap times.
+                if let Some(hud) = play.play.hud() {
+                    driving = true;
+                    state.hud_timer += delta;
+                    if state.hud_timer > 0.1 {
+                        state.hud_timer = 0.0;
+                        state.window.set_title(&format!(
+                            "{}   |   {:.0} fps",
+                            hud.line(),
+                            state.fps
+                        ));
+                    }
+                }
             }
 
             state.title_timer += delta;
             state.frames_since_title += 1;
             if state.title_timer > 0.5 {
                 let stats = state.renderer.stats();
-                state.window.set_title(&format!(
-                    "Solstice | {:.0} fps | {:.2}M tris of {:.0}M | {} clusters ({} sw)",
-                    state.frames_since_title as f32 / state.title_timer,
-                    stats.triangles as f32 / 1.0e6,
-                    stats.source_triangles as f32 / 1.0e6,
-                    stats.clusters,
-                    stats.software_clusters,
-                ));
+                state.fps = state.frames_since_title as f32 / state.title_timer;
+                if !driving {
+                    state.window.set_title(&format!(
+                        "Solstice | {:.0} fps | {:.2}M tris of {:.0}M | {} clusters ({} sw)",
+                        state.fps,
+                        stats.triangles as f32 / 1.0e6,
+                        stats.source_triangles as f32 / 1.0e6,
+                        stats.clusters,
+                        stats.software_clusters,
+                    ));
+                }
                 state.title_timer = 0.0;
                 state.frames_since_title = 0;
             }
