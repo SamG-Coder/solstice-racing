@@ -1,3 +1,89 @@
+# Kestrel Head
+
+[![CI](https://github.com/SamG-Coder/solstice-racing/actions/workflows/ci.yml/badge.svg)](https://github.com/SamG-Coder/solstice-racing/actions/workflows/ci.yml)
+[![Pages](https://github.com/SamG-Coder/solstice-racing/actions/workflows/pages.yml/badge.svg)](https://github.com/SamG-Coder/solstice-racing/actions/workflows/pages.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+A racing game built on [Solstice](https://github.com/SamG-Coder/solstice), a Nanite and Lumen
+style renderer in Rust and WebGPU: a GT3 car on a three-kilometre circuit round an island, along
+its cliffs and through its woods.
+
+**[Play it in the browser](https://samg-coder.github.io/solstice-racing/)**, in one with WebGPU
+such as Chrome or Edge, with the keyboard or a gamepad.
+
+![The start line of the circuit, under its gantry](docs/racing-start.jpg)
+
+| The hairpin at the point | Along the cliffs | Up through the woods |
+|---|---|---|
+| ![Hairpin](docs/racing-hairpin.jpg) | ![Cliffs](docs/racing-cliffs.jpg) | ![Woods](docs/racing-woods.jpg) |
+
+- **The car** is modelled in Blender from a GT3 car's published dimensions
+  (`tools/blender/gt3r`), and driven by a vehicle model of its own
+  (`crates/solstice-vehicle`): Pacejka tyres with combined slip and load sensitivity, sprung and
+  damped suspension with anti-roll bars, an engine, clutch, gearbox and differential solved
+  together, aerodynamic drag and downforce, anti-lock brakes and traction control.
+- **The circuit**, Kestrel Head, is drawn as a handful of points (`tools/track/make_coast.py`).
+  From its track file the bake builds everything else (`apps/bake/src/circuit`): the island and
+  its cliffs, the road with its racing line of rubber, kerbs, gravel, barriers and tyre walls,
+  the grass and the woods.
+- **Laps are timed**, with sectors, and a lap that leaves the road does not count.
+
+## Driving
+
+| | Keyboard | Gamepad |
+|---|---|---|
+| Throttle and brake | **W** / **S** or the arrows | Right and left triggers |
+| Steer | **A** / **D** or the arrows | Left stick |
+| Handbrake | **Space** | **B** / circle |
+| Change gear (manual cars) | **E** up, **Q** down | Bumpers |
+| Back on the track | **R** | **Y** / triangle |
+| Camera: nearer, further, high above, on the car | **C** | Select (Create on a PS5 pad) |
+| Look round the car, and over it | **J** / **L**, **I** / **K** | Right stick |
+| Look behind | **B** | Right stick, pressed |
+| Let the car drive itself | **P** | Start (Options) |
+
+Gamepads work in the browser, through its standard layout, and natively, through `gilrs`.
+
+The car has anti-lock brakes, traction control and stability control, which catches the tail
+when it steps out, and its steering follows a slide as a real wheel pulls a driver's hands
+round. They are what make it a car that can be driven hard with keys. A car's file turns each
+off (`scenes/circuit/gt3r.vehicle`, `assists`).
+
+## Running it
+
+In the browser, the game is built and deployed by GitHub Actions (`.github/workflows/pages.yml`)
+whenever `main` changes. The circuit itself is baked on a PC, as it needs the car's model, and
+published as a release, which the workflow downloads and serves beside the page:
+
+```bash
+python scripts/publish-circuit.py --bake
+```
+
+Natively, make the car and the track, bake the circuit and drive it:
+
+```bash
+blender --background --factory-startup --python-exit-code 1 --python tools/blender/gt3r/make.py -- target/gt3r/gt3r.glb --engine target/circuit/gt3r.glb
+```
+
+```bash
+python tools/track/make_coast.py
+```
+
+```bash
+cargo run --release -p bake -- --scene scenes/coast.txt --output assets/coast.solstice
+```
+
+```bash
+cargo run --release -p viewer -- assets/coast.solstice --play
+```
+
+To try the browser build on your own machine, run `bash scripts/build-web.sh`, then
+`python scripts/serve.py`, and open <http://localhost:8765>.
+
+The rest of this file is the engine's own.
+
+---
+
 # Solstice
 
 [![CI](https://github.com/SamG-Coder/solstice/actions/workflows/ci.yml/badge.svg)](https://github.com/SamG-Coder/solstice/actions/workflows/ci.yml)

@@ -1,0 +1,4 @@
+# The circuit this site serves: its file name, the release that holds it (OWNER/REPO@TAG,
+# or a tag of this repository) and its SHA-256. Written by scripts/publish-circuit.py;
+# pushing a change deploys the new circuit.
+coast.solstice circuit-2026-11-10-1711 cd4b39415d42a3e9c4d21c61023b0acc06cf6cebfb3ec1eb76631b7b7277c92d

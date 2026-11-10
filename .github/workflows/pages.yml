@@ -1,5 +1,14 @@
 name: Pages
 
+# Builds the game for the browser and serves it with its circuit.
+#
+# The page and both builds of the viewer are built here. The circuit is not: baking it needs the
+# car's model, which Blender makes, and takes a PC a minute or two. It is baked there and
+# published as a release of this repository (scripts/publish-circuit.py). scene.txt names the
+# release and the file's SHA-256, and this downloads it and checks it, so the site always holds
+# exactly what was published. It is served from the same site as the page, so that the browser
+# can stream it, which it cannot from a release.
+
 on:
   push:
     branches: [main]
@@ -28,10 +37,18 @@ jobs:
         with:
           targets: wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
-      # The viewer only: each scene is served by its own Pages site (SamG-Coder/solstice-scene-*),
-      # published from a PC with scripts/publish-scenes.py, so this never moves scenes.
       - name: Build the site
         run: bash scripts/build-web.sh
+      - name: Download and check the circuit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          read -r name release digest < <(grep -v '^#' scene.txt | grep .)
+          # A release is OWNER/REPO@TAG, or a tag of this repository.
+          if [[ "$release" == *@* ]]; then repo=${release%@*}; tag=${release#*@}; else repo=${{ github.repository }}; tag=$release; fi
+          gh release download "$tag" --repo "$repo" --pattern "$name" --dir dist/assets
+          echo "$digest  dist/assets/$name" | sha256sum --check
+          ls -l dist dist/assets
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
@@ -45,3 +62,6 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          # The circuit is a couple of hundred megabytes, which takes Pages a while to take in.
+          timeout: 1800000
